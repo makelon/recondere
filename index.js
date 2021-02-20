@@ -1,6 +1,8 @@
 const crypto = require('crypto');
 const { Client } = require('pg');
 
+const DEFAULT_EXPIRATION = 60 * 60 * 24 * 1000;
+
 let pgClient;
 
 async function readEncrypted(input) {
@@ -32,7 +34,7 @@ async function storeEncrypted(data, attempt) {
   }
 
   try {
-    await query('INSERT INTO passwords (id, data, expires) VALUES ($1, $2, $3)', [id, encrypted, new Date(Date.now() + 3600000)]);
+    await query('INSERT INTO passwords (id, data, expires) VALUES ($1, $2, $3)', [id, encrypted, new Date(Date.now() + DEFAULT_EXPIRATION)]);
   } catch (err) {
     if (err.code === '23505') {
       if (attempt === undefined) {
