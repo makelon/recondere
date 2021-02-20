@@ -1,15 +1,18 @@
-const crypto = require('crypto');
-const { Client } = require('pg');
+const crypto = require('crypto'),
+  http = require('http');
+  ({ Client } = require('pg'));
 
 const BASE64_REPLACEMENTS = {
-  '+': '-',
-  '/': '_',
-};
-const DEFAULT_EXPIRATION = 60 * 60 * 24 * 1000;
-const HTTP_PAYLOAD_TOO_LARGE = 413;
-const MAX_LENGTH = 1000;
+    '+': '-',
+    '/': '_',
+  },
+  DEFAULT_EXPIRATION = 60 * 60 * 24 * 1000,
+  DEFAULT_PORT = 8080,
+  HTTP_PAYLOAD_TOO_LARGE = 413,
+  MAX_LENGTH = 1000;
 
-let pgClient;
+let pgPersistent = false,
+  pgClient;
 
 function parseInput(str) {
   const [id, key, iv] = str.split(':');
@@ -98,14 +101,14 @@ async function getPgClient() {
 }
 
 async function closePgClient() {
-  if (pgClient) {
+  if (pgClient && !pgPersistent) {
     await pgClient.end();
   }
 }
 
 function cipherSetup(data, key, iv) {
   return new Promise((resolve, reject) => {
-    crypto.randomBytes(60, (err, buf) => {
+    crypto.randomBytes(64, (err, buf) => {
       if (err) {
         reject(err);
       }
@@ -128,8 +131,53 @@ function decrypt(data, key, iv) {
   return Buffer.concat([decipher.update(data), decipher.final()]);
 }
 
+function setupResponse(res) {
+  if (!res.status) {
+    res.status = status => {
+      res.statusCode = status;
+      return res;
+    };
+  }
+  if (!res.send) {
+    res.send = data => {
+      res.end(data);
+      return res;
+    };
+  }
+  if (!res.sendStatus) {
+    res.sendStatus = status => {
+      res.statusCode = status;
+      res.end();
+      return res;
+    }
+  }
+}
+
+function setupRequest(req) {
+  return new Promise((resolve, reject) => {
+    req.body = '';
+    req.on('data', data => {
+      req.body += data;
+    });
+    req.on('end', data => {
+      if (data) {
+        req.body += data;
+      }
+      resolve();
+    });
+    req.on('error', err => {
+      reject(err);
+      req.close();
+    });
+  });
+}
+
 async function handler(req, res) {
+  setupResponse(res);
   if (req.method === 'POST') {
+    if (!req.hasOwnProperty('body')) {
+      await setupRequest(req);
+    }
     if (req.body.length > MAX_LENGTH) {
       return res.sendStatus(HTTP_PAYLOAD_TOO_LARGE);
     }
@@ -140,8 +188,9 @@ async function handler(req, res) {
       res.send(err.message);
     }
   } else if (req.method === 'GET') {
+    const paramString = req.url[0] === '/' ? req.url.slice(1) : req.url;
     try {
-      const decrypted = await readEncrypted(req.path);
+      const decrypted = await readEncrypted(decodeURIComponent(paramString));
       res.send(decrypted && decrypted.toString());
     } catch (err) {
       res.status(400).send(err.message);
@@ -149,4 +198,17 @@ async function handler(req, res) {
   }
 }
 
+function start() {
+  const server = http.createServer(handler);
+  const port = process.env.PORT || DEFAULT_PORT
+  server.listen(port, () => {
+    console.log(`Server listening on port ${port}`);
+  });
+}
+
 module.exports = handler;
+
+if (module === require.main) {
+  pgPersistent = true;
+  start();
+}
