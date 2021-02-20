@@ -2,11 +2,29 @@ const crypto = require('crypto');
 const { Client } = require('pg');
 
 const DEFAULT_EXPIRATION = 60 * 60 * 24 * 1000;
+const BASE64_REPLACEMENTS = {
+  '+': '-',
+  '/': '_',
+};
 
 let pgClient;
 
+function parseInput(str) {
+  const [id, key, iv] = str.split(':');
+  return {
+    id,
+    key: Buffer.from(key, 'base64'),
+    iv: Buffer.from(iv, 'base64'),
+  };
+}
+
+function bufferToUrlBase64(str) {
+  return str.toString('base64')
+    .replace(/[+\/]/g, c => BASE64_REPLACEMENTS[c]);
+}
+
 async function readEncrypted(input) {
-  const [id, key, iv] = input.split(':');
+  const { id, key, iv } = parseInput(input);
   let decrypted;
   try {
     const result = await query('SELECT data from passwords where id = $1 and expires > $2', [id, new Date()]);
@@ -14,7 +32,7 @@ async function readEncrypted(input) {
     const encrypted = result.rows.length
       ? result.rows[0].data
       : '';
-    decrypted = await decrypt(encrypted, Buffer.from(key, 'base64'), Buffer.from(iv, 'base64'));
+    decrypted = await decrypt(encrypted, key, iv);
   } catch (err) {
     console.log('Failed to decrypt data');
   } finally {
@@ -48,7 +66,11 @@ async function storeEncrypted(data, attempt) {
   } finally {
     await closePgClient();
   }
-  return [id, key, iv];
+  return {
+    id,
+    key: bufferToUrlBase64(key),
+    iv: bufferToUrlBase64(iv),
+  };
 }
 
 async function query(...args) {
@@ -109,7 +131,7 @@ if (process.argv[2] === 'd') {
     }
   });
 } else if (process.argv[2] === 'c') {
-  storeEncrypted(process.argv[3]).then(([id, key, iv]) => {
+  storeEncrypted(process.argv[3]).then(({ id, key, iv }) => {
     console.log(`${id}:${key.toString('base64')}:${iv.toString('base64')}`);
   });
 }
