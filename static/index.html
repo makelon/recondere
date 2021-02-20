@@ -1,0 +1,460 @@
+<!doctype html>
+<html>
+<head>
+<style>
+body {
+	font-family: Verdana, Sans-Serif;
+	margin: 0;
+	text-align: center;
+	font-size: 16px;
+}
+
+.page {
+	box-sizing: border-box;
+	background-color: #f3f3f3;
+	max-width: 850px;
+	min-height: 100vh;
+	text-align: left;
+	margin: 0 auto;
+	padding-bottom: 40px;
+}
+
+header {
+}
+
+@media screen and (min-width: 768px) {
+	header {
+		padding-top: 80px;
+	}
+}
+
+main {
+	background-color: #f7eed7;
+	padding: 12px;
+	margin-bottom: 20px;
+	border-color: #efbb00;
+	border-style: solid;
+	border-width: 2px 0;
+}
+
+a {
+	color: #555;
+	text-decoration: none;
+	font-weight: bold;
+}
+
+form {
+	row-gap: 20px;
+}
+
+.form-group+.form-group {
+	margin-top: 20px;
+}
+
+label {
+	margin-bottom: 4px;
+}
+
+label, output {
+	display: block;
+}
+
+output {
+	word-break: break-all;
+	background-color: #f0f0f0;
+	padding: 12px;
+	cursor: default;
+	font: 75% monospace;
+	white-space: pre-wrap;
+	border-radius: 4px;
+	border: 1px #555 solid;
+	user-select: all;
+}
+
+output.error {
+	background-color: #ffd3d3;
+	border-color: #d41919;
+}
+
+button {
+	background-color: #efbd31;
+	color: #fff;
+}
+
+button, input, textarea {
+	border-radius: 4px;
+	border-color: #999;
+	outline: none;
+	transition-property: background-color, border-color;
+	transition-duration: 0.2s;
+}
+
+button {
+	background-color: #947c46;
+	font-weight: bold;
+}
+
+button:focus, button:hover {
+	background-color: #aa8f50;
+}
+
+input, textarea, button {
+	box-sizing: border-box;
+	font-size: 1rem;
+	padding: 8px 12px;
+	border-width: 2px;
+}
+
+input, textarea {
+	background-color: #f8f8f8;
+	width: 100%;
+}
+
+input:focus, input:hover, textarea:focus, textarea:hover {
+	background-color: #fff;
+}
+
+button:focus, button:hover, input:focus, input:hover, textarea:focus, textarea:hover {
+	border-color: #d1bf94;
+}
+
+textarea {
+	resize: vertical;
+}
+
+nav {
+	background-color: #ebebeb;
+}
+
+nav ol {
+	margin: 0 0 -2px 0;
+	padding: 0;
+	text-align: center;
+}
+
+nav li {
+	display: inline-block;
+	list-style-type: none;
+	border-bottom: 2px #efbb00 solid;
+}
+
+nav li.active {
+	border-bottom-color: #fff;
+}
+
+nav a {
+	display: block;
+	padding: 8px 32px;
+	transition-property: background-color, border-color;
+	transition-duration: 0.2s;
+}
+
+nav li.active a {
+	background-color: #f3f3f3;
+	color: #000;
+}
+</style>
+<script>
+const basePath = (function() {
+	const basePathEnd = window.location.pathname.lastIndexOf('/') + 1;
+	return window.location.pathname.substr(0, basePathEnd);
+})();
+
+function _(id, applier) {
+	const element = typeof id === 'object' ? id : document.getElementById(id);
+	return element && applier
+		? applier(element)
+		: element;
+}
+
+function listen(id, eventName, handler) {
+	_(id, function(element) {
+		element.addEventListener(eventName, handler);
+	});
+}
+
+function disable(id, state) {
+	_(id, function(element) {
+		element.disabled = state === true;
+	});
+}
+
+function show(id, state) {
+	_(id, function(element) {
+		element.style.display = state === false ? 'none' : '';
+	});
+}
+
+function displayDecryptedData(data, isError) {
+	_('read-content', function(element) {
+		element.textContent = data;
+		isError
+			? addClass(element, 'error')
+			: removeClass(element, 'error');
+	});
+	show('read-reveal', false);
+	show('read-content-group');
+	if (!isError) {
+		show('read-hide');
+	}
+}
+
+function hideDecryptedData() {
+	_('read-content', function(element) {
+		element.textContent = 'Content removed';
+		removeClass(element, 'error');
+	});
+	show('read-hide', false);
+}
+
+function displayGeneratedLink(paramString) {
+	_('create-output', function(element) {
+		removeClass(element, 'error');
+		const url = window.location.protocol + '//' + window.location.host + basePath + paramString;
+		element.textContent = url;
+	});
+	show('create-copy');
+	show('create-output-group');
+}
+
+function displayGeneratedLinkError(error) {
+	show('create-output-group');
+	_('create-output', function(element) {
+		element.textContent = error.text || error.error;
+		addClass(element, 'error');
+	});
+}
+
+const { readDecryptedData, getEncryptedLink } = (function() {
+	const apiUrl = 'http://127.0.0.1:8080';
+
+	async function readDecryptedData(event) {
+		event.preventDefault();
+		disable('read-reveal', true);
+		const paramString = encodeURIComponent(event.target.params.value);
+		const response = await request(`${apiUrl}/${paramString}`);
+		if (response.error) {
+			displayDecryptedData(response.error.text || response.error.error, true);
+		}
+		else {
+			displayDecryptedData(response.body, false);
+		}
+		disable('read-reveal', false);
+	}
+
+	async function getEncryptedLink(event) {
+		event.preventDefault();
+		disable('create-submit', true);
+		const form = event.target;
+		const ttl = Number(form.ttl.value);
+		if (isNaN(ttl)) {
+			displayGeneratedLinkError('TTL must be a number');
+		}
+		else {
+			const response = await request(apiUrl, {
+				method: 'POST',
+				body: JSON.stringify({
+					ttl,
+					data: form.content.value,
+				}),
+			});
+			if (response.error) {
+				displayGeneratedLinkError(response.error);
+			}
+			else {
+				form.content.value = '';
+				displayGeneratedLink(response.body);
+			}
+		}
+		disable('create-submit', false);
+	}
+
+	return {
+		readDecryptedData,
+		getEncryptedLink,
+	};
+})();
+
+function request(url, options) {
+	const xhr = new XMLHttpRequest();
+	options = options || {};
+	xhr.open(options.method || 'GET', url);
+	if (options.method === 'POST') {
+		xhr.setRequestHeader('content-type', 'application/json');
+	}
+
+	return new Promise(function(resolve) {
+		function cleanup() {
+			xhr.removeEventListener('error', onError);
+			xhr.removeEventListener('abort', onError);
+			xhr.removeEventListener('load', onLoad);
+			xhr.removeEventListener('timeout', onError);
+		}
+
+		function onLoad() {
+			const headers = xhr.getAllResponseHeaders().split('\n').map(function(headerLine) {
+				const [name, value] = headerLine.split(':');
+				return [name.trim().toLocaleLowerCase(), value];
+			});
+			const status = xhr.status;
+			const originalBody = xhr.responseText;
+
+			let body = null;
+			let ok = status >= 200 && status < 300;
+			let error;
+
+			try {
+				body = originalBody !== '' && headers['content-type'] === 'application/json'
+					? JSON.parse(originalBody)
+					: originalBody;
+			}
+			catch (e) {
+				ok = false;
+				error = e;
+			}
+
+			if (ok) {
+				resolve({ body, headers, status });
+			}
+			else {
+				resolve({
+					error: { error, text: originalBody },
+					headers,
+					status,
+				});
+			}
+			cleanup();
+		};
+
+		function onError(error) {
+			resolve({
+				error: { error },
+				headers: null,
+				status: xhr.status || 0,
+			});
+			cleanup();
+		};
+
+		xhr.addEventListener('load', onLoad);
+		xhr.addEventListener('error', onError);
+		xhr.addEventListener('timeout', onError);
+		xhr.addEventListener('abort', onError);
+
+		xhr.send(options.body);
+	});
+}
+
+function initForms() {
+	listen('read-form', 'submit', readDecryptedData);
+	listen('create-form', 'submit', getEncryptedLink);
+	listen('read-hide', 'click', hideDecryptedData);
+	if (window.location.pathname !== '/') {
+		_('read-form').params.value = window.location.pathname.substr(basePath.length);
+	}
+}
+
+function switchTab(tabIndex) {
+	return function() {
+		const tabContentNodes = document.getElementsByClassName('tab-content');
+		const tabButtons = document.getElementsByClassName('tab-button');
+		if (tabButtons[tabIndex]) {
+			for (let i = 0; i < tabButtons.length; ++i) {
+				tabContentNodes[i].style.display = 'none';
+				removeClass(tabButtons[i], 'active');
+			}
+			tabContentNodes[tabIndex].style.display = '';
+			addClass(tabButtons[tabIndex], 'active');
+		}
+	}
+}
+
+function addClass(element, className) {
+	const classNames = element.className.split(' ');
+	for (let i = 0; i < classNames.length; ++i) {
+		if (classNames[i] === className) {
+			return;
+		}
+	}
+	classNames.push(className);
+	element.className = classNames.join(' ');
+}
+
+function removeClass(element, className) {
+	const classNames = element.className.split(' ');
+	for (let i = 0; i < classNames.length; ++i) {
+		if (classNames[i] === className) {
+			classNames.splice(i, 1);
+			break;
+		}
+	}
+	element.className = classNames.join(' ');
+}
+
+function initMenu() {
+	listen('nav-read', 'click', switchTab(0));
+	listen('nav-create', 'click', switchTab(1));
+}
+
+function run() {
+	initForms();
+	initMenu();
+}
+
+</script>
+</head>
+<body>
+<div class="page">
+	<header>
+		<nav>
+			<ol id="menu">
+				<li class="tab-button active">
+					<a id="nav-read" href="javascript:void(0)">Read</a>
+				</li><li class="tab-button">
+					<a id="nav-create" href="javascript:void(0)">Create</a>
+				</li>
+			</ul>
+		</nav>
+	</header>
+	<main>
+		<h1>Hush</h1>
+		<section class="tab-content" id="read">
+			<h2>Read encrypted data</h2>
+			<form id="read-form">
+				<input type="hidden" name="params">
+				<div class="form-group">
+					<button id="read-reveal" type="submit">Decrypt content</button>
+					<button id="read-hide" type="button" style="display: none;">Remove content</button>
+				</div>
+				<div id="read-content-group" class="form-group" style="display: none;">
+					<label for="read-content">Content</label>
+					<output id="read-content"></output>
+				</div>
+			</form>
+		</section>
+		<section class="tab-content" id="create" style="display: none;">
+			<h2>Create encrypted data</h2>
+			<form id="create-form">
+				<div class="form-group">
+					<label for="ttl">Retention time (days)</label>
+					<input type="number" id="ttl" name="ttl" placeholder="1">
+				</div>
+				<div class="form-group">
+					<label for="content">Content</label>
+					<textarea id="content" name="content"></textarea>
+				</div>
+				<div class="form-group">
+					<button id="create-submit" type="submit">Create encrypted link</button>
+				</div>
+				<div id="create-output-group" class="form-group" style="display: none;">
+					<label for="create-output">Link</label>
+					<output class="form-group" id="create-output"></output>
+				</div>
+			</form>
+		</section>
+	</main>
+</div>
+<script>
+run();
+</script>
+</body>
+</html>
