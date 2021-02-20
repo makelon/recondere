@@ -6,7 +6,8 @@ const BASE64_REPLACEMENTS = {
     '+': '-',
     '/': '_',
   },
-  DEFAULT_EXPIRATION = 60 * 60 * 24 * 1000,
+  DAY_TO_MILLISEC = 60 * 60 * 24 * 1000,
+  DEFAULT_EXPIRATION = 1,
   DEFAULT_PORT = 8080,
   HTTP_PAYLOAD_TOO_LARGE = 413,
   MAX_LENGTH = 1000;
@@ -15,7 +16,7 @@ let pgPersistent = false,
   pgClient;
 
 function parseInput(str) {
-  const [id, key, iv] = str.split(':');
+  const [id, key, iv] = str.split('.');
   if (iv === undefined) {
     throw new Error('Invalid input');
   }
@@ -49,7 +50,7 @@ async function readEncrypted(input) {
   return decrypted;
 }
 
-async function storeEncrypted(data, attempt) {
+async function storeEncrypted(data, ttl, attempt) {
   let id, key, iv, encrypted;
   try {
     ({id, key, iv} = await cipherSetup());
@@ -60,7 +61,11 @@ async function storeEncrypted(data, attempt) {
   }
 
   try {
-    await query('INSERT INTO passwords (id, data, expires) VALUES ($1, $2, $3)', [id, encrypted, new Date(Date.now() + DEFAULT_EXPIRATION)]);
+    if (!ttl) {
+      ttl = DEFAULT_EXPIRATION;
+    }
+    const expires = new Date(Date.now() + ttl * DAY_TO_MILLISEC);
+    await query('INSERT INTO passwords (id, data, expires) VALUES ($1, $2, $3)', [id, encrypted, expires]);
   } catch (err) {
     if (err.code === '23505') {
       if (attempt === undefined) {
@@ -68,7 +73,7 @@ async function storeEncrypted(data, attempt) {
       } else if (attempt >= 5) {
         throw new Error('Failed to find unique ID for encrypted data');
       }
-      return storeEncrypted(data, ++attempt);
+      return storeEncrypted(data, ttl, ++attempt);
     }
     throw err;
   } finally {
@@ -131,6 +136,22 @@ function decrypt(data, key, iv) {
   return Buffer.concat([decipher.update(data), decipher.final()]);
 }
 
+function parseRequest(req) {
+  if (req.get('content-type') === 'application/json') {
+    try {
+      const { ttl, data } = JSON.parse(req.body);
+      return {
+        data,
+        ttl: Math.min(ttl, 30),
+      };
+    } catch (err) {
+      console.log(err);
+    }
+  } else {
+    return { data: req.body, ttl: false };
+  }
+}
+
 function setupResponse(res) {
   if (!res.status) {
     res.status = status => {
@@ -151,9 +172,14 @@ function setupResponse(res) {
       return res;
     }
   }
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  res.setHeader('Access-Control-Allow-Headers', 'content-type');
 }
 
 function setupRequest(req) {
+  req.get = header => req.headers[header];
   return new Promise((resolve, reject) => {
     req.body = '';
     req.on('data', data => {
@@ -179,12 +205,15 @@ async function handler(req, res) {
       await setupRequest(req);
     }
     if (req.body.length > MAX_LENGTH) {
-      return res.sendStatus(HTTP_PAYLOAD_TOO_LARGE);
+      return res.status(HTTP_PAYLOAD_TOO_LARGE)
+        .send(`Content exceeds maximum allowed size of ${MAX_LENGTH} bytes`);
     }
     try {
-      const { id, key, iv } = await storeEncrypted(req.body);
-      res.send(`${id}:${key.toString('base64')}:${iv.toString('base64')}`);
+      const { ttl, data } = parseRequest(req);
+      const { id, key, iv } = await storeEncrypted(data, ttl);
+      res.send(`${id}.${key.toString('base64')}.${iv.toString('base64')}`);
     } catch (err) {
+      console.log(err);
       res.send(err.message);
     }
   } else if (req.method === 'GET') {
@@ -193,8 +222,11 @@ async function handler(req, res) {
       const decrypted = await readEncrypted(decodeURIComponent(paramString));
       res.send(decrypted && decrypted.toString());
     } catch (err) {
+      console.log(err);
       res.status(400).send(err.message);
     }
+  } else if (req.method === 'OPTIONS') {
+    res.end();
   }
 }
 
