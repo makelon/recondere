@@ -1,16 +1,13 @@
 const crypto = require('crypto'),
-  http = require('http');
-  ({ Client } = require('pg'));
+  { Client } = require('pg');
 
 const BASE64_REPLACEMENTS = {
     '+': '-',
     '/': '_',
+    '=': '',
   },
   DAY_TO_MILLISEC = 60 * 60 * 24 * 1000,
-  DEFAULT_EXPIRATION = 1,
-  DEFAULT_PORT = 8080,
-  HTTP_PAYLOAD_TOO_LARGE = 413,
-  MAX_LENGTH = 1000;
+  DEFAULT_EXPIRATION = 1;
 
 let pgPersistent = false,
   pgClient;
@@ -29,7 +26,7 @@ function parseInput(str) {
 
 function bufferToUrlBase64(buf) {
   return buf.toString('base64')
-    .replace(/[+\/]/g, c => BASE64_REPLACEMENTS[c]);
+    .replace(/[+\/=]/g, c => BASE64_REPLACEMENTS[c]);
 }
 
 async function readEncrypted(input) {
@@ -43,6 +40,7 @@ async function readEncrypted(input) {
       : '';
     decrypted = await decrypt(encrypted, key, iv);
   } catch (err) {
+    console.log(err);
     throw new Error('Failed to decrypt data');
   } finally {
     await closePgClient();
@@ -79,11 +77,11 @@ async function storeEncrypted(data, ttl, attempt) {
   } finally {
     await closePgClient();
   }
-  return {
-    id,
-    key: bufferToUrlBase64(key),
-    iv: bufferToUrlBase64(iv),
-  };
+  return `${id}.${bufferToUrlBase64(key)}.${bufferToUrlBase64(iv)}`
+}
+
+function setPersistent(persistent) {
+  pgPersistent = persistent;
 }
 
 async function query(...args) {
@@ -136,111 +134,8 @@ function decrypt(data, key, iv) {
   return Buffer.concat([decipher.update(data), decipher.final()]);
 }
 
-function parseRequest(req) {
-  if (req.get('content-type') === 'application/json') {
-    try {
-      const { ttl, data } = JSON.parse(req.body);
-      return {
-        data,
-        ttl: Math.min(ttl, 30),
-      };
-    } catch (err) {
-      console.log(err);
-    }
-  } else {
-    return { data: req.body, ttl: false };
-  }
-}
-
-function setupResponse(res) {
-  if (!res.status) {
-    res.status = status => {
-      res.statusCode = status;
-      return res;
-    };
-  }
-  if (!res.send) {
-    res.send = data => {
-      res.end(data);
-      return res;
-    };
-  }
-  if (!res.sendStatus) {
-    res.sendStatus = status => {
-      res.statusCode = status;
-      res.end();
-      return res;
-    }
-  }
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-  res.setHeader('Access-Control-Max-Age', '86400');
-  res.setHeader('Access-Control-Allow-Headers', 'content-type');
-}
-
-function setupRequest(req) {
-  req.get = header => req.headers[header];
-  return new Promise((resolve, reject) => {
-    req.body = '';
-    req.on('data', data => {
-      req.body += data;
-    });
-    req.on('end', data => {
-      if (data) {
-        req.body += data;
-      }
-      resolve();
-    });
-    req.on('error', err => {
-      reject(err);
-      req.close();
-    });
-  });
-}
-
-async function handler(req, res) {
-  setupResponse(res);
-  if (req.method === 'POST') {
-    if (!req.hasOwnProperty('body')) {
-      await setupRequest(req);
-    }
-    if (req.body.length > MAX_LENGTH) {
-      return res.status(HTTP_PAYLOAD_TOO_LARGE)
-        .send(`Content exceeds maximum allowed size of ${MAX_LENGTH} bytes`);
-    }
-    try {
-      const { ttl, data } = parseRequest(req);
-      const { id, key, iv } = await storeEncrypted(data, ttl);
-      res.send(`${id}.${key.toString('base64')}.${iv.toString('base64')}`);
-    } catch (err) {
-      console.log(err);
-      res.send(err.message);
-    }
-  } else if (req.method === 'GET') {
-    const paramString = req.url[0] === '/' ? req.url.slice(1) : req.url;
-    try {
-      const decrypted = await readEncrypted(decodeURIComponent(paramString));
-      res.send(decrypted && decrypted.toString());
-    } catch (err) {
-      console.log(err);
-      res.status(400).send(err.message);
-    }
-  } else if (req.method === 'OPTIONS') {
-    res.end();
-  }
-}
-
-function start() {
-  const server = http.createServer(handler);
-  const port = process.env.PORT || DEFAULT_PORT
-  server.listen(port, () => {
-    console.log(`Server listening on port ${port}`);
-  });
-}
-
-module.exports = handler;
-
-if (module === require.main) {
-  pgPersistent = true;
-  start();
-}
+module.exports = {
+  readEncrypted,
+  storeEncrypted,
+  setPersistent,
+};

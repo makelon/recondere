@@ -1,6 +1,9 @@
 <!doctype html>
 <html>
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arcanum</title>
 <style>
 body {
 	font-family: Verdana, Sans-Serif;
@@ -20,12 +23,8 @@ body {
 }
 
 header {
-}
-
-@media screen and (min-width: 768px) {
-	header {
-		padding-top: 80px;
-	}
+	padding-top: 20px;
+	text-align: center;
 }
 
 main {
@@ -195,6 +194,7 @@ function displayDecryptedData(data, isError) {
 	show('read-reveal', false);
 	show('read-content-group');
 	if (!isError) {
+		show('read-label-success');
 		show('read-hide');
 	}
 }
@@ -344,15 +344,6 @@ function request(url, options) {
 	});
 }
 
-function initForms() {
-	listen('read-form', 'submit', readDecryptedData);
-	listen('create-form', 'submit', getEncryptedLink);
-	listen('read-hide', 'click', hideDecryptedData);
-	if (window.location.pathname !== '/') {
-		_('read-form').params.value = window.location.pathname.substr(basePath.length);
-	}
-}
-
 function switchTab(tabIndex) {
 	return function() {
 		const tabContentNodes = document.getElementsByClassName('tab-content');
@@ -390,14 +381,24 @@ function removeClass(element, className) {
 	element.className = classNames.join(' ');
 }
 
+function initForms() {
+	listen('read-form', 'submit', readDecryptedData);
+	listen('create-form', 'submit', getEncryptedLink);
+	listen('read-hide', 'click', hideDecryptedData);
+}
+
 function initMenu() {
-	listen('nav-read', 'click', switchTab(0));
-	listen('nav-create', 'click', switchTab(1));
+	listen('nav-create', 'click', switchTab(0));
+	listen('nav-read', 'click', switchTab(1));
 }
 
 function run() {
 	initForms();
 	initMenu();
+	if (window.location.pathname !== basePath) {
+		_('read-form').params.value = window.location.pathname.substr(basePath.length);
+		switchTab(1)();
+	}
 }
 
 </script>
@@ -405,33 +406,19 @@ function run() {
 <body>
 <div class="page">
 	<header>
+		<h1>Recondere</h1>
 		<nav>
 			<ol id="menu">
 				<li class="tab-button active">
-					<a id="nav-read" href="javascript:void(0)">Read</a>
-				</li><li class="tab-button">
 					<a id="nav-create" href="javascript:void(0)">Create</a>
+				</li><li class="tab-button">
+					<a id="nav-read" href="javascript:void(0)">Read</a>
 				</li>
 			</ul>
 		</nav>
 	</header>
 	<main>
-		<h1>Hush</h1>
-		<section class="tab-content" id="read">
-			<h2>Read encrypted data</h2>
-			<form id="read-form">
-				<input type="hidden" name="params">
-				<div class="form-group">
-					<button id="read-reveal" type="submit">Decrypt content</button>
-					<button id="read-hide" type="button" style="display: none;">Remove content</button>
-				</div>
-				<div id="read-content-group" class="form-group" style="display: none;">
-					<label for="read-content">Content</label>
-					<output id="read-content"></output>
-				</div>
-			</form>
-		</section>
-		<section class="tab-content" id="create" style="display: none;">
+		<section class="tab-content" id="create">
 			<h2>Create encrypted data</h2>
 			<form id="create-form">
 				<div class="form-group">
@@ -448,6 +435,20 @@ function run() {
 				<div id="create-output-group" class="form-group" style="display: none;">
 					<label for="create-output">Link</label>
 					<output class="form-group" id="create-output"></output>
+				</div>
+			</form>
+		</section>
+		<section class="tab-content" id="read" style="display: none;">
+			<h2>Read encrypted data</h2>
+			<form id="read-form">
+				<input type="hidden" name="params">
+				<div class="form-group">
+					<button id="read-reveal" type="submit">Decrypt content</button>
+					<button id="read-hide" type="button" style="display: none;">Hide content</button>
+				</div>
+				<div id="read-content-group" class="form-group" style="display: none;">
+					<label id="read-label-success" for="read-content" style="display: none;">Content decrypted and removed.<br>This link cannot be used again.</label>
+					<output id="read-content"></output>
 				</div>
 			</form>
 		</section>
