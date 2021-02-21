@@ -1,24 +1,18 @@
-const http = require('http'),
-	{ setPersistent, storeEncrypted, readEncrypted } = require('./pwshare');
+const { storeEncrypted, readEncrypted } = require('./pwshare');
 
-const DEFAULT_PORT = 8080,
-	HTTP_PAYLOAD_TOO_LARGE = 413,
-	MAX_LENGTH = 1000;
+const HTTP_PAYLOAD_TOO_LARGE = 413;
+const MAX_LENGTH = 1000;
 
-function parseRequest(req) {
-	if (req.get('content-type') === 'application/json') {
-		try {
-			const { ttl, data } = JSON.parse(req.body);
-			return {
-				data,
-				ttl: Math.min(ttl, 30),
-			};
-		} catch (err) {
-			console.log(err);
-		}
-	} else {
-		return { data: req.body, ttl: false };
-	}
+function parseRequest(body) {
+  return typeof body === 'string'
+    ? {
+      data: body,
+      ttl: false,
+    }
+    : {
+      data: body.data,
+      ttl: Math.min(body.ttl, 30),
+    };
 }
 
 function setupResponse(res) {
@@ -56,13 +50,23 @@ function setupRequest(req) {
 
 function readRequestData(req) {
 	return new Promise((resolve, reject) => {
-		req.body = '';
-		req.on('data', data => {
-			req.body += data;
+		let data = '';
+		req.on('data', chunk => {
+			data += chunk;
 		});
-		req.on('end', data => {
-			if (data) {
-				req.body += data;
+		req.on('end', chunk => {
+			if (chunk) {
+				data += chunk;
+			}
+			if (req.get('content-type') === 'application/json') {
+			  try {
+			    req.body = JSON.parse(data);
+			  } catch (err) {
+			    console.log(err);
+			  }
+			}
+			else {
+			  req.body = data;
 			}
 			resolve();
 		});
@@ -85,7 +89,7 @@ async function handler(req, res) {
 				.send(`Content exceeds maximum allowed size of ${MAX_LENGTH} bytes`);
 		}
 		try {
-			const { ttl, data } = parseRequest(req);
+			const { ttl, data } = parseRequest(req.body);
 			const paramString = await storeEncrypted(data, ttl);
 			res.send(paramString);
 		} catch (err) {
@@ -106,15 +110,6 @@ async function handler(req, res) {
 	}
 }
 
-function start() {
-	const server = http.createServer(handler);
-	const port = process.env.PORT || DEFAULT_PORT
-	server.listen(port, () => {
-		console.log(`Server listening on port ${port}`);
-	});
-}
-
 module.exports = {
-	handler,
-	start,
+  handler,
 };

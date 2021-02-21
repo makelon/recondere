@@ -2,11 +2,14 @@
   "name": "@makelon/recondere",
   "version": "1.0.0",
   "description": "A password sharing tool",
-  "main": "src/index.js",
+  "main": "src/server.js",
   "author": "makelon",
   "license": "MIT-0",
   "private": true,
   "dependencies": {
     "mongodb": "^3.6.4"
+  },
+  "devDependencies": {
+    "express": "^4.17.1"
   }
 }
