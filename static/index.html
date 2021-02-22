@@ -29,21 +29,18 @@ header {
 
 main {
 	background-color: #f7eed7;
-	padding: 12px;
-	margin-bottom: 20px;
 	border-color: #efbb00;
 	border-style: solid;
 	border-width: 2px 0;
+	display: block;
+	margin-bottom: 20px;
+	padding: 12px;
 }
 
 a {
 	color: #555;
 	text-decoration: none;
 	font-weight: bold;
-}
-
-form {
-	row-gap: 20px;
 }
 
 .form-group+.form-group {
@@ -154,15 +151,17 @@ nav li.active a {
 }
 </style>
 <script>
-const basePath = (function() {
-	const basePathEnd = window.location.pathname.lastIndexOf('/') + 1;
+var basePath = (function() {
+	var basePathEnd = window.location.pathname.lastIndexOf('/') + 1;
 	return window.location.pathname.substr(0, basePathEnd);
 })();
 
-function _(id, applier) {
-	const element = typeof id === 'object' ? id : document.getElementById(id);
-	return element && applier
-		? applier(element)
+function _(idOrElement, effect) {
+	var element = typeof idOrElement === 'object'
+		? idOrElement
+		: document.getElementById(idOrElement);
+	return element && effect
+		? effect(element)
 		: element;
 }
 
@@ -197,6 +196,9 @@ function displayDecryptedData(data, isError) {
 		show('read-label-success');
 		show('read-hide');
 	}
+	if ('history' in window) {
+		window.history.replaceState(null, '', basePath);
+	}
 }
 
 function hideDecryptedData() {
@@ -210,8 +212,7 @@ function hideDecryptedData() {
 function displayGeneratedLink(paramString) {
 	_('create-output', function(element) {
 		removeClass(element, 'error');
-		const url = window.location.protocol + '//' + window.location.host + basePath + paramString;
-		element.textContent = url;
+		element.textContent = window.location.protocol + '//' + window.location.host + basePath + paramString;
 	});
 	show('create-copy');
 	show('create-output-group');
@@ -225,131 +226,143 @@ function displayGeneratedLinkError(error) {
 	});
 }
 
-const { readDecryptedData, getEncryptedLink } = (function() {
-	const apiUrl = 'http://127.0.0.1:8080';
+var readDecryptedData, getEncryptedLink
+(function() {
+	var apiUrl = 'http://127.0.0.1:8080';
 
-	async function readDecryptedData(event) {
-		event.preventDefault();
-		disable('read-reveal', true);
-		const paramString = encodeURIComponent(event.target.params.value);
-		const response = await request(`${apiUrl}/${paramString}`);
-		if (response.error) {
-			displayDecryptedData(response.error.text || response.error.error, true);
-		}
-		else {
-			displayDecryptedData(response.body, false);
-		}
+	function onReadDecryptedData(response) {
+		response.error
+			? displayDecryptedData(response.error.text || response.error.error, true)
+			: displayDecryptedData(response.body, false);
 		disable('read-reveal', false);
 	}
 
-	async function getEncryptedLink(event) {
+	readDecryptedData = function readDecryptedData(event) {
 		event.preventDefault();
-		disable('create-submit', true);
-		const form = event.target;
-		const ttl = Number(form.ttl.value);
-		if (isNaN(ttl)) {
-			displayGeneratedLinkError('TTL must be a number');
-		}
-		else {
-			const response = await request(apiUrl, {
-				method: 'POST',
-				body: JSON.stringify({
-					ttl,
-					data: form.content.value,
-				}),
+		disable('read-reveal', true);
+		var paramString = encodeURIComponent(event.target.params.value);
+		request(apiUrl + '/' + paramString, {
+			done: onReadDecryptedData
+		});
+	};
+
+	function onGetEncryptedLink(response) {
+		if (response.error) {
+			displayGeneratedLinkError(response.error);
+		} else {
+			_('create-content', function(element) {
+				element.value = '';
 			});
-			if (response.error) {
-				displayGeneratedLinkError(response.error);
-			}
-			else {
-				form.content.value = '';
-				displayGeneratedLink(response.body);
-			}
+			displayGeneratedLink(response.body);
 		}
-		disable('create-submit', false);
 	}
 
-	return {
-		readDecryptedData,
-		getEncryptedLink,
+	getEncryptedLink = function (event) {
+		event.preventDefault();
+		disable('create-submit', true);
+		var form = event.target;
+		var ttl = Number(form.ttl.value);
+		if (isNaN(ttl)) {
+			displayGeneratedLinkError('TTL must be a number');
+		} else {
+			request(apiUrl, {
+				method: 'POST',
+				body: JSON.stringify({
+					ttl: ttl,
+					data: form.content.value
+				}),
+				done: onGetEncryptedLink
+			});
+		}
+		disable('create-submit', false);
 	};
 })();
 
 function request(url, options) {
-	const xhr = new XMLHttpRequest();
+	var xhr = new XMLHttpRequest();
 	options = options || {};
+	if (!options.done) {
+		options.done = function() {};
+	}
 	xhr.open(options.method || 'GET', url);
 	if (options.method === 'POST') {
 		xhr.setRequestHeader('content-type', 'application/json');
 	}
 
-	return new Promise(function(resolve) {
-		function cleanup() {
-			xhr.removeEventListener('error', onError);
-			xhr.removeEventListener('abort', onError);
-			xhr.removeEventListener('load', onLoad);
-			xhr.removeEventListener('timeout', onError);
+	function cleanup() {
+		xhr.removeEventListener('error', onError);
+		xhr.removeEventListener('abort', onError);
+		xhr.removeEventListener('load', onLoad);
+		xhr.removeEventListener('timeout', onError);
+	}
+
+	function onLoad() {
+		var headers = xhr.getAllResponseHeaders().split('\n').map(function(headerLine) {
+			headerLine = headerLine.split(':');
+			var name = headerLine[0],
+				value = headerLine[1];
+			return [name.trim().toLocaleLowerCase(), value];
+		});
+		var status = xhr.status;
+		var originalBody = xhr.responseText;
+
+		var body = null;
+		var ok = status >= 200 && status < 300;
+		var error;
+
+		try {
+			body = originalBody !== '' && headers['content-type'] === 'application/json'
+				? JSON.parse(originalBody)
+				: originalBody;
+		} catch (e) {
+			ok = false;
+			error = e;
 		}
 
-		function onLoad() {
-			const headers = xhr.getAllResponseHeaders().split('\n').map(function(headerLine) {
-				const [name, value] = headerLine.split(':');
-				return [name.trim().toLocaleLowerCase(), value];
+		if (ok) {
+			options.done({
+				body: body,
+				headers: headers,
+				status: status
 			});
-			const status = xhr.status;
-			const originalBody = xhr.responseText;
-
-			let body = null;
-			let ok = status >= 200 && status < 300;
-			let error;
-
-			try {
-				body = originalBody !== '' && headers['content-type'] === 'application/json'
-					? JSON.parse(originalBody)
-					: originalBody;
-			}
-			catch (e) {
-				ok = false;
-				error = e;
-			}
-
-			if (ok) {
-				resolve({ body, headers, status });
-			}
-			else {
-				resolve({
-					error: { error, text: originalBody },
-					headers,
-					status,
-				});
-			}
-			cleanup();
-		};
-
-		function onError(error) {
-			resolve({
-				error: { error },
-				headers: null,
-				status: xhr.status || 0,
+		} else {
+			options.done({
+				error: {
+					error: error,
+					text: originalBody
+				},
+				headers: headers,
+				status: status,
 			});
-			cleanup();
-		};
+		}
+		cleanup();
+	};
 
-		xhr.addEventListener('load', onLoad);
-		xhr.addEventListener('error', onError);
-		xhr.addEventListener('timeout', onError);
-		xhr.addEventListener('abort', onError);
+	function onError(error) {
+		options.done({
+			error: {
+				error: error
+			},
+			headers: null,
+			status: xhr.status || 0,
+		});
+		cleanup();
+	};
 
-		xhr.send(options.body);
-	});
+	xhr.addEventListener('load', onLoad);
+	xhr.addEventListener('error', onError);
+	xhr.addEventListener('timeout', onError);
+	xhr.addEventListener('abort', onError);
+
+	xhr.send(options.body);
 }
 
 function switchTab(tabIndex) {
 	return function() {
-		const tabContentNodes = document.getElementsByClassName('tab-content');
-		const tabButtons = document.getElementsByClassName('tab-button');
+		var tabContentNodes = document.getElementsByClassName('tab-content');
+		var tabButtons = document.getElementsByClassName('tab-button');
 		if (tabButtons[tabIndex]) {
-			for (let i = 0; i < tabButtons.length; ++i) {
+			for (var i = 0; i < tabButtons.length; ++i) {
 				tabContentNodes[i].style.display = 'none';
 				removeClass(tabButtons[i], 'active');
 			}
@@ -360,8 +373,8 @@ function switchTab(tabIndex) {
 }
 
 function addClass(element, className) {
-	const classNames = element.className.split(' ');
-	for (let i = 0; i < classNames.length; ++i) {
+	var classNames = element.className.split(' ');
+	for (var i = 0; i < classNames.length; ++i) {
 		if (classNames[i] === className) {
 			return;
 		}
@@ -371,8 +384,8 @@ function addClass(element, className) {
 }
 
 function removeClass(element, className) {
-	const classNames = element.className.split(' ');
-	for (let i = 0; i < classNames.length; ++i) {
+	var classNames = element.className.split(' ');
+	for (var i = 0; i < classNames.length; ++i) {
 		if (classNames[i] === className) {
 			classNames.splice(i, 1);
 			break;
@@ -414,23 +427,23 @@ function run() {
 				</li><li class="tab-button">
 					<a id="nav-read" href="javascript:void(0)">Read</a>
 				</li>
-			</ul>
+			</ol>
 		</nav>
 	</header>
 	<main>
 		<section class="tab-content" id="create">
-			<h2>Create encrypted data</h2>
+			<h2>Create encrypted link</h2>
 			<form id="create-form">
 				<div class="form-group">
-					<label for="ttl">Retention time (days)</label>
-					<input type="number" id="ttl" name="ttl" placeholder="1">
+					<label for="create-ttl">Retention time (days)</label>
+					<input type="number" id="create-ttl" name="ttl" placeholder="1">
 				</div>
 				<div class="form-group">
-					<label for="content">Content</label>
-					<textarea id="content" name="content"></textarea>
+					<label for="create-content">Content</label>
+					<textarea id="create-content" name="content"></textarea>
 				</div>
 				<div class="form-group">
-					<button id="create-submit" type="submit">Create encrypted link</button>
+					<button id="create-submit" type="submit">Create</button>
 				</div>
 				<div id="create-output-group" class="form-group" style="display: none;">
 					<label for="create-output">Link</label>
@@ -443,7 +456,7 @@ function run() {
 			<form id="read-form">
 				<input type="hidden" name="params">
 				<div class="form-group">
-					<button id="read-reveal" type="submit">Decrypt content</button>
+					<button id="read-reveal" type="submit">Decrypt</button>
 					<button id="read-hide" type="button" style="display: none;">Hide content</button>
 				</div>
 				<div id="read-content-group" class="form-group" style="display: none;">
