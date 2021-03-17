@@ -1,50 +1,101 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A fast and safe way to share secrets over communication methods that don't provide secrecy.">
 <title>Recondere</title>
 <style>
+@font-face {
+	font-family: 'Lato';
+	src: url('fonts/Lato/lato-v17-latin-regular.woff2') format('woff2'),
+		url('fonts/Lato/lato-v17-latin-regular.woff') format('woff');
+}
+
+@font-face {
+	font-family: 'Play';
+	src: url('fonts/Play/play-v12-latin-regular.woff2') format('woff2'),
+		url('fonts/Play/play-v12-latin-regular.woff') format('woff');
+}
+
+html {
+	font-family: Lato, sans-serif;
+	font-size: 18px;
+}
+
 body {
-	font-family: Verdana, Sans-Serif;
 	margin: 0;
 	text-align: center;
-	font-size: 16px;
 }
 
 .page {
 	box-sizing: border-box;
-	background-color: #f3f3f3;
-	max-width: 850px;
-	min-height: 100vh;
 	text-align: left;
 	margin: 0 auto;
-	padding-bottom: 40px;
 }
 
 header {
-	padding-top: 20px;
+	font-family: Play, sans-serif;
+	text-align: center;
+	background-color: #405261;
+	color: #d1dce5;
+}
+
+h1 {
+	margin: 0;
+	padding: 16px 0;
+}
+
+h2 {
+	margin: 1rem 0;
+}
+
+nav {
+	background-color: #b4c6d5;
+}
+
+nav ol {
+	margin: 0;
+	padding: 0;
 	text-align: center;
 }
 
-main {
-	background-color: #f7eed7;
-	border-color: #efbb00;
-	border-style: solid;
-	border-width: 2px 0;
+nav li {
+	list-style-type: none;
+}
+
+nav a {
+	background-color: transparent;
 	display: block;
-	margin-bottom: 20px;
-	padding: 12px;
+	padding: 8px 24px;
+	transition-property: background-color, color;
+	transition-duration: 0.2s;
+}
+
+nav li.active a {
+	background-color: #e5f4fb;
+	color: #000;
+}
+
+main {
+	display: block;
+	max-width: 850px;
+	margin: 1rem auto;
+}
+
+section {
+	padding: 16px;
+	background-color: #f4f8fb;
 }
 
 a {
-	color: #555;
+	color: #4e4e4e;
 	text-decoration: none;
 	font-weight: bold;
 }
 
 .form-group+.form-group {
-	margin-top: 20px;
+	margin-top: 1rem;
 }
 
 label {
@@ -64,7 +115,6 @@ output {
 	white-space: pre-wrap;
 	border-radius: 4px;
 	border: 1px #555 solid;
-	user-select: all;
 }
 
 output.error {
@@ -72,9 +122,14 @@ output.error {
 	border-color: #d41919;
 }
 
+#create-output {
+	user-select: all;
+}
+
 button {
-	background-color: #efbd31;
+	background-color: #405261;
 	color: #fff;
+	font-weight: bold;
 }
 
 button, input, textarea {
@@ -85,20 +140,15 @@ button, input, textarea {
 	transition-duration: 0.2s;
 }
 
-button {
-	background-color: #947c46;
-	font-weight: bold;
-}
-
 button:focus, button:hover {
-	background-color: #aa8f50;
+	background-color: #627c92;
 }
 
 input, textarea, button {
 	box-sizing: border-box;
 	font-size: 1rem;
-	padding: 8px 12px;
-	border-width: 2px;
+	padding: 8px 16px;
+	border-width: 1px;
 }
 
 input, textarea {
@@ -111,43 +161,25 @@ input:focus, input:hover, textarea:focus, textarea:hover {
 }
 
 button:focus, button:hover, input:focus, input:hover, textarea:focus, textarea:hover {
-	border-color: #d1bf94;
+	border-color: #8aa1a5;
 }
 
 textarea {
 	resize: vertical;
 }
 
-nav {
-	background-color: #ebebeb;
-}
+@media screen and (min-width: 421px) {
+	nav li {
+		display: inline-block;
+	}
 
-nav ol {
-	margin: 0 0 -2px 0;
-	padding: 0;
-	text-align: center;
-}
+	main {
+		padding: 0 8px;
+	}
 
-nav li {
-	display: inline-block;
-	list-style-type: none;
-	border-bottom: 2px #efbb00 solid;
-}
-
-nav li.active {
-	border-bottom-color: #fff;
-}
-
-nav a {
-	display: block;
-	padding: 8px 32px;
-	transition-property: background-color, border-color;
-	transition-duration: 0.2s;
-}
-
-nav li.active a {
-	background-color: #f3f3f3;
-	color: #000;
+	section {
+		border-radius: 16px;
+	}
 }
 </style>
 <script>
@@ -185,14 +217,22 @@ function show(id, state) {
 
 function displayDecryptedData(data, isError) {
 	_('read-content', function(element) {
-		element.textContent = data;
-		isError
-			? addClass(element, 'error')
-			: removeClass(element, 'error');
+		if (isError) {
+			element.textContent = 'The service returned an error: '
+				+ data
+				+ '\nThis may mean that the link has expired.';
+			addClass(element, 'error');
+		} else {
+			element.textContent = data;
+			removeClass(element, 'error');
+		}
 	});
-	show('read-reveal', false);
+	_('read-params', function(element) {
+		element.value = '';
+	});
 	show('read-content-group');
 	if (!isError) {
+		show('read-reveal', false);
 		show('read-label-success');
 		show('read-hide');
 	}
@@ -203,10 +243,13 @@ function displayDecryptedData(data, isError) {
 
 function hideDecryptedData() {
 	_('read-content', function(element) {
-		element.textContent = 'Content removed';
 		removeClass(element, 'error');
 	});
+	show('read-label-success', false);
+	show('read-content-group', false);
 	show('read-hide', false);
+	show('read-reveal', true);
+	disable('read-params', false);
 }
 
 function displayGeneratedLink(paramString) {
@@ -341,7 +384,7 @@ function request(url, options) {
 	function onError(error) {
 		options.done({
 			error: {
-				error: error
+				error: 'An unknown error occurred.'
 			},
 			headers: null,
 			status: xhr.status || 0,
@@ -394,23 +437,18 @@ function removeClass(element, className) {
 	element.className = classNames.join(' ');
 }
 
-function initForms() {
+function run() {
 	listen('read-form', 'submit', readDecryptedData);
 	listen('create-form', 'submit', getEncryptedLink);
 	listen('read-hide', 'click', hideDecryptedData);
-}
-
-function initMenu() {
 	listen('nav-create', 'click', switchTab(0));
 	listen('nav-read', 'click', switchTab(1));
-}
-
-function run() {
-	initForms();
-	initMenu();
+	listen('nav-info', 'click', switchTab(2));
 	if (window.location.pathname !== basePath) {
 		_('read-form').params.value = window.location.pathname.substr(basePath.length);
 		switchTab(1)();
+	} else {
+		disable('read-params', false);
 	}
 }
 
@@ -420,16 +458,18 @@ function run() {
 <div class="page">
 	<header>
 		<h1>Recondere</h1>
-		<nav>
-			<ol id="menu">
-				<li class="tab-button active">
-					<a id="nav-create" href="javascript:void(0)">Create</a>
-				</li><li class="tab-button">
-					<a id="nav-read" href="javascript:void(0)">Read</a>
-				</li>
-			</ol>
-		</nav>
 	</header>
+	<nav>
+		<ol id="menu">
+			<li class="tab-button active">
+				<a id="nav-create" href="javascript:void(0)">Encrypt</a>
+			</li><li class="tab-button">
+				<a id="nav-read" href="javascript:void(0)">Decrypt</a>
+			</li><li class="tab-button">
+				<a id="nav-info" href="javascript:void(0)">About</a>
+			</li>
+		</ol>
+	</nav>
 	<main>
 		<section class="tab-content" id="create">
 			<h2>Create encrypted link</h2>
@@ -443,7 +483,7 @@ function run() {
 					<textarea id="create-content" name="content"></textarea>
 				</div>
 				<div class="form-group">
-					<button id="create-submit" type="submit">Create</button>
+					<button id="create-submit" type="submit">Encrypt</button>
 				</div>
 				<div id="create-output-group" class="form-group" style="display: none;">
 					<label for="create-output">Link</label>
@@ -454,7 +494,10 @@ function run() {
 		<section class="tab-content" id="read" style="display: none;">
 			<h2>Read encrypted data</h2>
 			<form id="read-form">
-				<input type="hidden" name="params">
+				<div class="form-group" id="read-params-group">
+					<label for="read-params">Parameter string</label>
+					<input type="text" id="read-params" name="params" disabled>
+				</div>
 				<div class="form-group">
 					<button id="read-reveal" type="submit">Decrypt</button>
 					<button id="read-hide" type="button" style="display: none;">Hide content</button>
@@ -464,6 +507,11 @@ function run() {
 					<output id="read-content"></output>
 				</div>
 			</form>
+		</section>
+		<section class="tab-content" id="info" style="display: none;">
+			<h2>Service description</h2>
+			<p>Recondere is a service that makes it easy to securely share secrets. Data is encrypted using AES with a 256-bit key before it's saved to the database and removed immediately after the first request.</p>
+			<p>Because each secret is encrypted with its own randomly generated key which isn't stored anywhere, it can only be read by a person with access to the link.</p>
 		</section>
 	</main>
 </div>
