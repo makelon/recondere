@@ -17,6 +17,7 @@ function setupResponse(res) {
 	res.set('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
 	res.set('Access-Control-Max-Age', '86400');
 	res.set('Access-Control-Allow-Headers', 'content-type');
+	res.set('Cache-Control', 'no-store');
 }
 
 async function handler(req, res) {
