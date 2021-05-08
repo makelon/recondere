@@ -1,0 +1,6 @@
+export const dbScheme = 'mongodb+srv';
+export const dbHost = '';
+export const dbName = 'pwshare';
+export const dbParams = '?retryWrites=true&w=majority';
+export const dbPassword = '';
+export const dbUsername = '';

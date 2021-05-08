@@ -1,10 +1,10 @@
-const express = require('express');
-const http = require('http');
-const { cli } = require('./src/cli');
-const { handler } = require('./src/server');
+import express from 'express';
 
-function start() {
-	const port = process.env.PORT || 8080;
+import { cli } from './src/cli';
+import { handler } from './src/server';
+
+function start(): void {
+	const port = process.env.PORT ? Number(process.env.PORT) : 8080;
 	const server = express();
 	server.use(express.json())
 	server.all('*', handler);
