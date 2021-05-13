@@ -1,0 +1,181 @@
+@font-face {
+	font-family: 'Lato';
+	src: url('fonts/Lato/lato-v17-latin-regular.woff2') format('woff2'),
+		url('fonts/Lato/lato-v17-latin-regular.woff') format('woff');
+}
+
+@font-face {
+	font-family: 'Play';
+	src: url('fonts/Play/play-v12-latin-regular.woff2') format('woff2'),
+		url('fonts/Play/play-v12-latin-regular.woff') format('woff');
+}
+
+html {
+	font-family: Lato, sans-serif;
+	font-size: 18px;
+}
+
+body {
+	margin: 0;
+	text-align: center;
+}
+
+.page {
+	box-sizing: border-box;
+	text-align: left;
+	margin: 0 auto;
+}
+
+header {
+	font-family: Play, sans-serif;
+	text-align: center;
+	background-color: #405261;
+	color: #d1dce5;
+}
+
+h1 {
+	margin: 0;
+	padding: 16px 0;
+}
+
+h2 {
+	margin: 1rem 0;
+}
+
+nav {
+	background-color: #b4c6d5;
+}
+
+nav ol {
+	margin: 0;
+	padding: 0;
+	text-align: center;
+}
+
+nav li {
+	list-style-type: none;
+}
+
+nav a {
+	background-color: transparent;
+	display: block;
+	padding: 8px 24px;
+	transition-property: background-color, color;
+	transition-duration: 0.2s;
+}
+
+nav li.active a {
+	background-color: #e5f4fb;
+	color: #000;
+}
+
+main {
+	display: block;
+	max-width: 850px;
+	margin: 1rem auto;
+}
+
+section {
+	padding: 16px;
+	background-color: #f4f8fb;
+}
+
+a {
+	color: #4e4e4e;
+	text-decoration: none;
+	font-weight: bold;
+}
+
+.form-group+.form-group {
+	margin-top: 1rem;
+}
+
+label {
+	margin-bottom: 4px;
+}
+
+label, output {
+	display: block;
+}
+
+output {
+	word-break: break-all;
+	background-color: #f0f0f0;
+	padding: 12px;
+	cursor: default;
+	font: 75% monospace;
+	white-space: pre-wrap;
+	border-radius: 4px;
+	border: 1px #555 solid;
+}
+
+output.error {
+	background-color: #ffd3d3;
+	border-color: #d41919;
+}
+
+#create-output {
+	-webkit-user-select: all;
+	-ms-user-select: all;
+	user-select: all;
+}
+
+.hide {
+	display: none;
+}
+
+button {
+	background-color: #405261;
+	color: #fff;
+	font-weight: bold;
+}
+
+button, input, textarea {
+	border-radius: 4px;
+	border-color: #999;
+	outline: none;
+	transition-property: background-color, border-color;
+	transition-duration: 0.2s;
+}
+
+button:focus, button:hover {
+	background-color: #627c92;
+}
+
+input, textarea, button {
+	box-sizing: border-box;
+	font-size: 1rem;
+	padding: 8px 16px;
+	border-width: 1px;
+}
+
+input, textarea {
+	background-color: #f8f8f8;
+	width: 100%;
+}
+
+input:focus, input:hover, textarea:focus, textarea:hover {
+	background-color: #fff;
+}
+
+button:focus, button:hover, input:focus, input:hover, textarea:focus, textarea:hover {
+	border-color: #8aa1a5;
+}
+
+textarea {
+	resize: vertical;
+}
+
+@media screen and (min-width: 421px) {
+	nav li {
+		display: inline-block;
+	}
+
+	main {
+		padding: 0 8px;
+	}
+
+	section {
+		border-radius: 16px;
+	}
+}
