@@ -1,6 +1,5 @@
-.gcloudignore
-.git
-.gitignore
-node_modules/
-static/
-/index.js
+/*
+!.
+!/dist
+!/package.json
+!/package-lock.json
