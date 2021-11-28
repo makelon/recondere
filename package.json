@@ -1,0 +1,9 @@
+{
+  "name": "@makelon/recondere",
+  "version": "1.0.0",
+  "description": "A password sharing tool",
+  "main": "src/index.js",
+  "author": "makelon",
+  "license": "MIT-0",
+  "private": true
+}
