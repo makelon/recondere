@@ -13,6 +13,7 @@
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
-        "removeComments": true
+        "removeComments": true,
+        "useUnknownInCatchVariables": false
     }
 }
