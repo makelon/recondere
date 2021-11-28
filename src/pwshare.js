@@ -1,5 +1,5 @@
 const crypto = require('crypto'),
-  { Client } = require('pg');
+  { find, store } = require('./storage');
 
 const BASE64_REPLACEMENTS = {
     '+': '-',
@@ -33,17 +33,11 @@ async function readEncrypted(input) {
   let id, key, iv, decrypted;
   try {
     ({id, key, iv} = parseInput(input));
-    const result = await query('SELECT data from passwords where id = $1 and expires > $2', [id, new Date()]);
-    await query('DELETE FROM passwords WHERE id = $1', [id]);
-    const encrypted = result.rows.length
-      ? result.rows[0].data
-      : '';
-    decrypted = await decrypt(encrypted, key, iv);
+    const encrypted = await find(id);
+    decrypted = decrypt(encrypted, key, iv);
   } catch (err) {
     console.log(err);
     throw new Error('Failed to decrypt data');
-  } finally {
-    await closePgClient();
   }
   return decrypted;
 }
@@ -52,61 +46,26 @@ async function storeEncrypted(data, ttl, attempt) {
   let id, key, iv, encrypted;
   try {
     ({id, key, iv} = await cipherSetup());
-    encrypted = await encrypt(data, key, iv);
+    encrypted = encrypt(data, key, iv);
   } catch (err) {
     console.log(err);
     throw new Error('Failed to encrypt data');
   }
 
-  try {
-    if (!ttl) {
-      ttl = DEFAULT_EXPIRATION;
+  if (!ttl) {
+    ttl = DEFAULT_EXPIRATION;
+  }
+  const expires = new Date(Date.now() + ttl * DAY_TO_MILLISEC);
+  const stored = await store(id, encrypted, expires);
+  if (!stored) {
+    if (attempt === undefined) {
+      attempt = 0;
+    } else if (attempt >= 5) {
+      throw new Error('Failed to find unique ID for encrypted data');
     }
-    const expires = new Date(Date.now() + ttl * DAY_TO_MILLISEC);
-    await query('INSERT INTO passwords (id, data, expires) VALUES ($1, $2, $3)', [id, encrypted, expires]);
-  } catch (err) {
-    if (err.code === '23505') {
-      if (attempt === undefined) {
-        attempt = 0;
-      } else if (attempt >= 5) {
-        throw new Error('Failed to find unique ID for encrypted data');
-      }
-      return storeEncrypted(data, ttl, ++attempt);
-    }
-    throw err;
-  } finally {
-    await closePgClient();
+    return await storeEncrypted(data, ttl, ++attempt);
   }
   return `${id}.${bufferToUrlBase64(key)}.${bufferToUrlBase64(iv)}`
-}
-
-function setPersistent(persistent) {
-  pgPersistent = persistent;
-}
-
-async function query(...args) {
-  const client = await getPgClient();
-  return await client.query(...args);
-}
-
-async function getPgClient() {
-  if (!pgClient) {
-    pgClient = new Client({
-      user: process.env.DB_USER,
-      host: process.env.DB_HOST,
-      database: process.env.DB_NAME,
-      password: process.env.DB_PASSWORD,
-      port: process.env.DB_PORT,
-    });
-    await pgClient.connect();
-  }
-  return pgClient;
-}
-
-async function closePgClient() {
-  if (pgClient && !pgPersistent) {
-    await pgClient.end();
-  }
 }
 
 function cipherSetup(data, key, iv) {
@@ -137,5 +96,4 @@ function decrypt(data, key, iv) {
 module.exports = {
   readEncrypted,
   storeEncrypted,
-  setPersistent,
 };

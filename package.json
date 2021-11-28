@@ -5,5 +5,8 @@
   "main": "src/index.js",
   "author": "makelon",
   "license": "MIT-0",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "mongodb": "^3.6.4"
+  }
 }

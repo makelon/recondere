@@ -1,6 +1,7 @@
-const { handler } = require('./server');
+const { handler } = require('./server'),
+  { disconnect } = require('./storage');
 
-module.exports = function cli() {
+module.exports = async function() {
   const res = {
       send: msg => {
         console.log(msg);
@@ -23,5 +24,6 @@ module.exports = function cli() {
       : { method: 'POST', body: process.argv.length > 3 ? process.argv[3] : '' };
     req.get = header => '';
   
-  handler(req, res);
+  await handler(req, res);
+  await disconnect();
 };
