@@ -1,7 +1,3 @@
-export function getBasePath() {
-	return window.location.protocol + '//' + window.location.host + window.location.pathname;
-}
-
 export function _(idOrElement, effect) {
 	var element = typeof idOrElement === 'object'
 		? idOrElement
