@@ -1,10 +1,10 @@
 const API_URL = 'http://localhost:8080';
 
-const path = require('path'),
-	webpack = require('webpack'),
-	HtmlWebpackPlugin = require('html-webpack-plugin');
-	MiniCssExtractPlugin = require('mini-css-extract-plugin'),
-	RemoveEmptyScriptsPlugin = require('webpack-remove-empty-scripts');
+import path from 'path';
+import webpack from 'webpack';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import RemoveEmptyScriptsPlugin from 'webpack-remove-empty-scripts';
 
 const filenamePattern = '[name].[contenthash:8]';
 
@@ -12,15 +12,15 @@ const apiUrlWithTrailingSlash = API_URL.slice(-1) === '/'
 	? API_URL
 	: API_URL + '/';
 
-module.exports = {
+export default {
 	mode: 'production',
-	context: path.resolve(__dirname, 'static'),
+	context: path.resolve('static'),
 	entry: {
 		app: './scripts/main.js',
 		style: './style.css'
 	},
 	output: {
-		path: path.resolve(__dirname, 'dist', 'static'),
+		path: path.resolve('dist', 'static'),
 		filename: `${filenamePattern}.js`,
 		clean: true
 	},
