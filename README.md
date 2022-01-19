@@ -33,7 +33,7 @@ For other hosting solutions, the Express server instance in [src/index.ts](index
 
 ### The web frontend
 
-To use the web interface, replace the `API_URL` placeholder in [webpack.config.js](webpack.config.js#L1) with the correct URL to the backend service and run `npm run build:static`. The `dist/static` folder can then be deployed as a static site on any hosting provider or used directly with a local web browser.
+To use the web interface, replace the `API_URL` placeholder in [webpack.config.js](webpack.config.js#L1) with the correct URL to the backend service and run `npm run build:static`. The `dist/static` folder can then be deployed as a static site on any hosting provider or used directly with a local web browser. It can also be served from the backend service, which may be preferable on VPS-like hosting solutions. The URL to access it is then the same as `API_URL` (i.e. [http://localhost:8080](http://localhost:8080) with the default configuration).
 
 ### The CLI frontend
 

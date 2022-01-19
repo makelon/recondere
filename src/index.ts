@@ -16,6 +16,7 @@ async function runExpress(): Promise<void> {
 	const storageClient = await getStorageClient();
 	const expressHandler = new ExpressHandler(new Application(storageClient));
 	httpServer.use(express.json());
+	httpServer.use(express.static('dist/static'));
 	httpServer.all('*', expressHandler.handle.bind(expressHandler));
 	httpServer.listen(port, () => {
 		console.log(`Server listening on port ${port}`);
