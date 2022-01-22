@@ -38,3 +38,7 @@ To use the web interface, replace the `API_URL` placeholder in [webpack.config.j
 ### The CLI frontend
 
 To use the command-line interface, follow the instructions above for the backend service and run `node dist/server help` to see a list of supported commands.
+
+### Removing expired entries
+
+To remove old entries, send an HTTP request with the DELETE method and no body parameters to the backend. It can also be done using the CLI frontend with the command `node dist/server delete`.
