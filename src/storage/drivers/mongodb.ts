@@ -61,9 +61,7 @@ class StorageDriverMongo implements IStorageDriver {
 }
 
 export async function createStorageDriver(connectionString: string): Promise<IStorageDriver> {
-	const mongoClient = await MongoClient.connect(connectionString, {
-		useUnifiedTopology: true,
-	});
+	const mongoClient = await MongoClient.connect(connectionString);
 
 	return new StorageDriverMongo(mongoClient);
 }
