@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 
 import Application from '../application';
+import { corsAllowOrigin } from '../config';
 
 const HTTP_BAD_REQUEST = 400;
 const HTTP_INTERNAL_SERVER_ERROR = 500;
@@ -95,7 +96,7 @@ export default class ExpressHandler {
 	}
 
 	public handle(req: Request<void>, res: Response): void {
-		res.set('Access-Control-Allow-Origin', '*');
+		res.set('Access-Control-Allow-Origin', corsAllowOrigin);
 		switch (req.method) {
 			case 'GET':
 				this.readEncrypted(req, res);
