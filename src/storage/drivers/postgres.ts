@@ -10,12 +10,14 @@ class StorageDriverPg implements IStorageDriver {
 	}
 
 	public async find(id: string) {
-		const result = await this.#pgClient.query<{ data: Buffer }>('SELECT data from passwords where id = $1 and expires > $2', [id, new Date()]);
-		await this.#pgClient.query('DELETE FROM passwords WHERE id = $1', [id]);
+		const result = await this.#pgClient.query<{ data: Buffer }>(
+			'DELETE FROM passwords WHERE id = $1 and expires > $2 RETURNING data',
+			[id, new Date()],
+		);
 		if (!result.rows[0]) {
 			throw new Error('Not found');
 		}
-		return result.rows[0].data
+		return result.rows[0].data;
 	}
 
 	public async store(id: string, data: Buffer, expires: Date) {
