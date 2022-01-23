@@ -11,7 +11,6 @@ export function readDecryptedData(event) {
 	if (paramStringParts.length === 1) {
 		getPayload(paramString, function(response) {
 			handleDecryptedDataResponse(response);
-			disable('read-reveal', false);
 		});
 	} else if (hasWebCrypto) {
 		paramString = paramStringParts[0];
@@ -20,21 +19,19 @@ export function readDecryptedData(event) {
 		getEncryptionKey(passwordBytes).then(function(key) {
 			getPayload(paramString, function(response) {
 				handleDecryptedDataResponse(response, key);
-				disable('read-reveal', false);
 			});
+		}).catch(function(error) {
+			disable('read-reveal', false);
+			displayError('Failed to set up decryption key: ' + error.message);
 		});
 	} else {
-		_('read-content', function(element) {
-			element.textContent = 'This link can only be viewed using a more recent web browser.';
-			addClass(element, 'error');
-		});
-		show('read-content-group');
+		displayError('This link can only be viewed using a more recent web browser.');
 	}
 }
 
 function getPayload(paramString, callback) {
 	request(API_URL + encodeURIComponent(paramString), {
-		done: callback
+		done: callback,
 	});
 }
 
@@ -48,37 +45,44 @@ function handleDecryptedDataResponse(response, decryptionKey) {
 	} else {
 		displayDecryptedData(response.body, false);
 	}
+	disable('read-reveal', false);
 }
 
 function decryptPayload(encryptedPayload, key) {
 	var encryptedPayloadBuffer = stringToBuffer(encryptedPayload);
 	return window.crypto.subtle.decrypt(getEncryptionParams(), key, encryptedPayloadBuffer).then(function(decryptedPayloadBuffer) {
 		return new TextDecoder().decode(decryptedPayloadBuffer);
+	}).catch(function(error) {
+		displayError('Failed to decrypt data: ' + error.message);
 	});
 }
 
 function displayDecryptedData(data, isError) {
-	_('read-content', function(element) {
-		if (isError) {
-			element.textContent = 'The service returned an error: '
-				+ data
-				+ '\nThis may mean that the link has expired.';
-			addClass(element, 'error');
-		} else {
+	if (isError) {
+		displayError('The service returned an error: '
+			+ data
+			+ '\nThis may mean that the link has expired.');
+		disable('read-params', false);
+	} else {
+		_('read-content', function(element) {
 			element.textContent = data;
 			removeClass(element, 'error');
-		}
-	});
-	_('read-params').value = '';
-	show('read-content-group');
-	if (!isError) {
+		});
+		show('read-content-group');
 		show('read-reveal', false);
 		show('read-label-success');
 		show('read-hide');
-	} else {
-		disable('read-params', false);
 	}
+	_('read-params').value = '';
 	if ('history' in window && typeof window.history.replaceState === 'function') {
 		window.history.replaceState(null, '', basePath);
 	}
+}
+
+function displayError(message) {
+	_('read-content', function(element) {
+		element.textContent = message;
+		addClass(element, 'error');
+	});
+	show('read-content-group');
 }
