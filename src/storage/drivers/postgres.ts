@@ -10,7 +10,7 @@ class StorageDriverPg implements IStorageDriver {
 	}
 
 	public async find(id: string) {
-		const result = await this.#pgClient.query<{ data: Buffer }>(
+		const result = await this.#pgClient.query<{ data: Uint8Array }>(
 			'DELETE FROM passwords WHERE id = $1 and expires > $2 RETURNING data',
 			[id, new Date()],
 		);
@@ -20,7 +20,7 @@ class StorageDriverPg implements IStorageDriver {
 		return result.rows[0].data;
 	}
 
-	public async store(id: string, data: Buffer, expires: Date) {
+	public async store(id: string, data: Uint8Array, expires: Date) {
 		try {
 			await this.#pgClient.query('INSERT INTO passwords (id, data, expires) VALUES ($1, $2, $3)', [id, data, expires]);
 		} catch (err: unknown) {

@@ -17,7 +17,7 @@ interface SecretParams {
 }
 
 interface Secret extends SecretParams {
-	encrypted: Buffer;
+	encrypted: Uint8Array;
 }
 
 export default class Application {
@@ -75,7 +75,7 @@ export default class Application {
 		}
 	}
 
-	private static decrypt(data: Buffer, key: Buffer, iv: Buffer): Buffer {
+	private static decrypt(data: Uint8Array, key: Buffer, iv: Buffer): Uint8Array {
 		const decipher = crypto.createDecipheriv('aes256', key, iv);
 		return Buffer.concat([decipher.update(data), decipher.final()]);
 	}

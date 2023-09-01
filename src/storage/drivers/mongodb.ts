@@ -28,7 +28,7 @@ class StorageDriverMongo implements IStorageDriver {
 		return result.value.data.buffer;
 	}
 
-	public async store(id: string, data: Buffer, expires: Date) {
+	public async store(id: string, data: Uint8Array, expires: Date) {
 		try {
 			await this.#collection.insertOne({
 				_id: id,

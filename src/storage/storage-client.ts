@@ -2,8 +2,8 @@ import { dbHost, dbName, dbParams, dbPassword, dbScheme, dbUsername } from '../c
 import { IStorageDriver } from './drivers/storage-driver';
 
 export interface IStorageClient {
-	find(id: string): Promise<Buffer>;
-	store(id: string, data: Buffer, expires: Date): Promise<boolean>;
+	find(id: string): Promise<Uint8Array>;
+	store(id: string, data: Uint8Array, expires: Date): Promise<boolean>;
 	remove(id?: string): Promise<number>;
 	disconnect(): Promise<void>;
 }
@@ -19,7 +19,7 @@ class StorageClient implements IStorageClient {
 		return this.#storageDriver.find(id);
 	}
 
-	public async store(id: string, data: Buffer, expires: Date) {
+	public async store(id: string, data: Uint8Array, expires: Date) {
 		return this.#storageDriver.store(id, data, expires);
 	}
 
