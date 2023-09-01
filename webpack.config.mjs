@@ -4,7 +4,6 @@ import path from 'path';
 import webpack from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
-import RemoveEmptyScriptsPlugin from 'webpack-remove-empty-scripts';
 
 const filenamePattern = '[name].[contenthash:8]';
 
@@ -15,10 +14,7 @@ const apiUrlWithTrailingSlash = API_URL.slice(-1) === '/'
 export default {
 	mode: 'production',
 	context: path.resolve('static'),
-	entry: {
-		app: './scripts/main.js',
-		style: './style.css'
-	},
+	entry: ['./scripts/main.js', './style.css'],
 	output: {
 		path: path.resolve('dist', 'static'),
 		filename: `${filenamePattern}.js`,
@@ -28,12 +24,7 @@ export default {
 		rules: [
 			{
 				test: /\.css$/,
-				use: [
-					MiniCssExtractPlugin.loader,
-					{
-						loader: 'css-loader'
-					}
-				]
+				use: [MiniCssExtractPlugin.loader, 'css-loader']
 			}
 		]
 	},
@@ -41,7 +32,6 @@ export default {
 		new webpack.DefinePlugin({
 		  'API_URL': `'${apiUrlWithTrailingSlash}'`
 		}),
-		new RemoveEmptyScriptsPlugin(),
 		new HtmlWebpackPlugin({
 			filename: 'index.html',
 			template: './index.html',
