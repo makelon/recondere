@@ -35,12 +35,12 @@ class StorageDriverPg implements IStorageDriver {
 
 	public async remove(id: string) {
 		const result = await this.#pgClient.query('DELETE FROM passwords WHERE id = $1', [id]);
-		return result.rowCount;
+		return result.rowCount || 0;
 	}
 
 	public async removeExpired() {
 		const result = await this.#pgClient.query('DELETE FROM passwords WHERE expires < $1', [new Date()]);
-		return result.rowCount;
+		return result.rowCount || 0;
 	}
 
 	public async disconnect() {

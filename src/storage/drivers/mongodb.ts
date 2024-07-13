@@ -22,10 +22,10 @@ class StorageDriverMongo implements IStorageDriver {
 			_id: id,
 			expires: { $gt: new Date() },
 		});
-		if (!result.value) {
+		if (!result) {
 			throw new Error('Not found');
 		}
-		return result.value.data.buffer;
+		return result.data.buffer;
 	}
 
 	public async store(id: string, data: Uint8Array, expires: Date) {
