@@ -1,5 +1,8 @@
 /*
 !.
-!/dist
+!/src
+!/static
 !/package.json
 !/package-lock.json
+!/tsconfig.json
+!/webpack.config.mjs

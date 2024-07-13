@@ -26,7 +26,7 @@ After renaming `config.ts.dist` to `config.ts` and editing the configuration val
 When running the service as a Cloud Function in GCP, the `handle` function in `dist/server/function.js` will be used as the entry point:
 
 ```
-gcloud functions deploy <name> --runtime=nodejs14 --trigger-http --entry-point=handle
+gcloud functions deploy <name> --runtime=nodejs20 --trigger-http --entry-point=handle
 ```
 
 For other hosting solutions, the Express server instance in [src/index.ts](index.ts) should be a good starting point.
