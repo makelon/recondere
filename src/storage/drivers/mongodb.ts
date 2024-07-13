@@ -1,6 +1,6 @@
 import { Binary, Collection, MongoClient, MongoError } from 'mongodb';
 
-import { IStorageDriver } from './storage-driver';
+import { IStorageDriver } from './storage-driver.js';
 
 interface CollectionSchema {
 	_id: string;

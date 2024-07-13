@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "A password sharing tool",
   "main": "dist/server/function.js",
+  "type": "module",
   "author": "makelon",
   "license": "MIT-0",
   "private": true,

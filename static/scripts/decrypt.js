@@ -1,7 +1,7 @@
-import { _, disable, show, addClass, removeClass } from './dom';
-import { getEncryptionParams, getEncryptionKey, hasWebCrypto } from './encrypt';
-import request from './request';
-import { base64Decode, basePath, stringToBuffer } from './utils';
+import { _, disable, show, addClass, removeClass } from './dom.js';
+import { getEncryptionParams, getEncryptionKey, hasWebCrypto } from './encrypt.js';
+import request from './request.js';
+import { base64Decode, basePath, stringToBuffer } from './utils.js';
 
 export function readDecryptedData(event) {
 	event.preventDefault();

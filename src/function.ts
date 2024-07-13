@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 
-import ExpressHandler from './api/express-handler';
-import Application from './application';
-import { getStorageClient } from './storage/storage-client';
+import ExpressHandler from './api/express-handler.js';
+import Application from './application.js';
+import { getStorageClient } from './storage/storage-client.js';
 
 let expressHandler: ExpressHandler;
 

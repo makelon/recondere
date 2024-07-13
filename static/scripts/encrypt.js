@@ -1,6 +1,6 @@
-import { _, disable, show, addClass, removeClass } from './dom';
-import request from './request';
-import { base64Encode, basePath } from './utils';
+import { _, disable, show, addClass, removeClass } from './dom.js';
+import request from './request.js';
+import { base64Encode, basePath } from './utils.js';
 
 export var hasWebCrypto = window.crypto && window.crypto.subtle && typeof window.crypto.subtle.encrypt === 'function';
 

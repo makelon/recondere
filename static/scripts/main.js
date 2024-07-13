@@ -1,6 +1,6 @@
-import { _, listen, disable, show, addClass, removeClass } from './dom';
-import { readDecryptedData } from './decrypt';
-import { getEncryptedLink } from './encrypt';
+import { _, listen, disable, show, addClass, removeClass } from './dom.js';
+import { readDecryptedData } from './decrypt.js';
+import { getEncryptedLink } from './encrypt.js';
 
 function hideDecryptedData() {
 	_('read-content', function(element) {

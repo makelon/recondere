@@ -1,5 +1,5 @@
-import { dbHost, dbName, dbParams, dbPassword, dbScheme, dbUsername } from '../config';
-import { IStorageDriver } from './drivers/storage-driver';
+import { dbHost, dbName, dbParams, dbPassword, dbScheme, dbUsername } from '../config.js';
+import { IStorageDriver } from './drivers/storage-driver.js';
 
 export interface IStorageClient {
 	find(id: string): Promise<Uint8Array>;
@@ -41,9 +41,9 @@ interface StorageModule {
 function getStorageModule(): Promise<StorageModule> {
 	try {
 		if (dbScheme.startsWith('postgres')) {
-			return import('./drivers/postgres');
+			return import('./drivers/postgres.js');
 		} else if (dbScheme.startsWith('mongodb')) {
-			return import('./drivers/mongodb');
+			return import('./drivers/mongodb.js');
 		} else {
 			throw new Error(`Unknown storage module: ${dbScheme}`);
 		}

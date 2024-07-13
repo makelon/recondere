@@ -1,11 +1,11 @@
-import { Client } from 'pg';
+import pg from 'pg';
 
-import { IStorageDriver } from './storage-driver';
+import { IStorageDriver } from './storage-driver.js';
 
 class StorageDriverPg implements IStorageDriver {
-	readonly #pgClient: Client;
+	readonly #pgClient: pg.Client;
 
-	constructor(pgClient: Client) {
+	constructor(pgClient: pg.Client) {
 		this.#pgClient = pgClient;
 	}
 
@@ -49,7 +49,7 @@ class StorageDriverPg implements IStorageDriver {
 }
 
 export async function createStorageDriver(connectionString: string): Promise<IStorageDriver> {
-	const pgClient = new Client(connectionString);
+	const pgClient = new pg.Client(connectionString);
 	await pgClient.connect();
 
 	return new StorageDriverPg(pgClient);

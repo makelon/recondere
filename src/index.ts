@@ -1,9 +1,9 @@
 import express from 'express';
 
-import CliHandler from './api/cli-handler';
-import ExpressHandler from './api/express-handler';
-import Application from './application';
-import { getStorageClient } from './storage/storage-client';
+import CliHandler from './api/cli-handler.js';
+import ExpressHandler from './api/express-handler.js';
+import Application from './application.js';
+import { getStorageClient } from './storage/storage-client.js';
 
 async function runCli(): Promise<void> {
 	const storageClient = await getStorageClient();
@@ -33,6 +33,4 @@ async function run(): Promise<void> {
 	}
 }
 
-if (module === require.main) {
-	run();
-}
+run();

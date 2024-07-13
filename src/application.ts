@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-import { IStorageClient } from './storage/storage-client';
+import { IStorageClient } from './storage/storage-client.js';
 
 const BASE64_REPLACEMENTS = {
 	'+': '-',
