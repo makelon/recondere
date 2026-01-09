@@ -19,8 +19,8 @@
     "html-webpack-plugin": "^5.5.0",
     "mini-css-extract-plugin": "^2.4.5",
     "typescript": "^5.5.3",
-    "webpack": "^5.94.0",
-    "webpack-cli": "^5.1.4"
+    "webpack": "^5.76.0",
+    "webpack-cli": "^6.0.1"
   },
   "scripts": {
     "build": "npm run build:server && npm run build:static",
